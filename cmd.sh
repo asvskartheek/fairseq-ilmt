@@ -10,9 +10,6 @@ IMPORTS=(
 	# Use your appropriate one
 )
 
-# Head Node -> /home2/asvs
-# G Node -> /home2/asvs
-
 LOCAL_ROOT="/ssd_scratch/cvit/$USER"
 REMOTE_ROOT="/home2/$USER"
 
@@ -22,9 +19,7 @@ DATA=$LOCAL_ROOT/data
 CHECKPOINTS=$LOCAL_ROOT/checkpoints
 RESULTS=$LOCAL_ROOT/results
 
-# rsync -r /home/shashanks/ilci/ $DATA/ilci/
-
-rsync -rvz /home2/$USER/checkpoints/checkpoint_best.pt $CHECKPOINTS/
+rsync -rvz $REMOTE_ROOT/checkpoints/checkpoint_best.pt $CHECKPOINTS/
 
 function copy {
     for IMPORT in ${IMPORTS[@]}; do
@@ -34,21 +29,20 @@ function copy {
     done
 }
 
-rsync -vz /home2/$USER/datasets/complete-en-ml/ $DATA/complete-en-ml/
-mv $DATA/sample_check/a.txt $DATA/complete-en-ml/test.ml-en.en
-
 function _export {
-    ssh $USER@ada "mkdir -p ada:/share1/$USER/checkpoints/pib"
-    rsync -rvz $CHECKPOINTS/checkpoint_best.pt ada:/share1/$USER/checkpoints/pib/
+	ssh $USER@ada "mkdir -p ada:/backtranslation_results/"
+	rsync -rvz $RESULTS/output.txt ada:/backtranslation_results/
 }
 
-# trap "_export" SIGHUP
+trap "_export" SIGHUP
 copy
+rsync -vz $REMOTE_ROOT/datasets/complete-en-ml/ $DATA/complete-en-ml/
+mv $DATA/sample_check/a.txt $DATA/complete-en-ml/test.ml-en.en
 export ILMULTI_CORPUS_ROOT=$DATA
 
 python3 preprocess_cvit.py config.yaml
 
-
+set -x
 ARCH='transformer'
 MAX_TOKENS=3500
 LR=1e-3
@@ -76,9 +70,6 @@ function train {
         config.yaml
 
 }
-
-    #    --reset-optimizer \
-    #    --reset-lr-scheduler \
 
 function _test {
     python3 generate.py config.yaml \
@@ -112,10 +103,7 @@ function _backtranslate {
           --path $CHECKPOINTS/checkpoint_best.pt > $RESULTS/output.txt
 }
 
-# ARG=$1
-# eval "$1"
-# # _test
-
-# wait
-# _export
 _backtranslate
+
+wait
+_export

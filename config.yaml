@@ -1,7 +1,7 @@
 corpora:
-    ilci:
-        splits: ['train', 'test', 'dev']
-        langs: [ 'en', 'hi', 'ta', 'te', 'ml', 'ur', 'bn', 'gu', 'mr', 'pa']
+    # ilci:
+        # splits: ['train', 'test', 'dev']
+        # langs: [ 'en', 'hi', 'ta', 'te', 'ml', 'ur', 'bn', 'gu', 'mr', 'pa']
         #langs: ['en', 'hi','ta', 'te']
     #wat-ilmpc:
     #     splits: ['dev']
@@ -28,9 +28,12 @@ corpora:
     #eenadu-en-te:
     #    splits: ['train']
     #    langs: ['en','te']
-    odiencorp:
-        splits: ['train', 'test', 'dev']
-        langs: ['en','or']
+    # odiencorp:
+        # splits: ['train', 'test', 'dev']
+        # langs: ['en','or']
+    complete-en-ml:
+        splits: ['train', 'dev', 'test']
+        langs: ['en', 'ml']
 
 dictionary:
     src: '/home/shashanks/ilmulti/ilmulti/sentencepiece/central.dict'

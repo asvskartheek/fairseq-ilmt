@@ -1,46 +1,30 @@
 #!/bin/bash
-#SBATCH --job-name=bt
-#SBATCH --partition long
-#SBATCH --account shashanks
-#SBATCH --gres=gpu:4
-#SBATCH --nodes=1
-#SBATCH --mem=40G
-#SBATCH --time 3-00:00:00
-#SBATCH --signal=B:HUP@600
-##SBATCH -w gnode37
-
 
 module add use.own
 module load python/3.7.0
 module load pytorch/1.1.0
 
-<<CMT
 IMPORTS=(
-    filtered-iitb.tar
-    ilci.tar
-    national-newscrawl.tar
-    ufal-en-tam.tar
-    wat-ilmpc.tar
-    bible-en-te.tar
-    eenadu-en-te.tar
+	directory.tar.xz
+    # ml.tar.xz
+	# Use your appropriate one
 )
-CMT
 
-IMPORTS=(
-    odiencorp.tar
-)
+# Head Node -> /home2/asvs
+# G Node -> /home2/asvs
 
 LOCAL_ROOT="/ssd_scratch/cvit/$USER"
-REMOTE_ROOT="ada:/share1/dataset/text"
+REMOTE_ROOT="/home2/$USER"
 
-mkdir -p $LOCAL_ROOT/{data,checkpoints}
+mkdir -p $LOCAL_ROOT/{data,checkpoints,results}
 
 DATA=$LOCAL_ROOT/data
 CHECKPOINTS=$LOCAL_ROOT/checkpoints
+RESULTS=$LOCAL_ROOT/results
 
-rsync -r /home/shashanks/ilci/ $DATA/ilci/
+# rsync -r /home/shashanks/ilci/ $DATA/ilci/
 
-#rsync -rvz ada:/share1/shashanks/checkpoints/mmall/checkpoint_last.pt $CHECKPOINTS/
+rsync -rvz /home2/$USER/checkpoints/checkpoint_best.pt $CHECKPOINTS/
 
 function copy {
     for IMPORT in ${IMPORTS[@]}; do
@@ -50,12 +34,15 @@ function copy {
     done
 }
 
+rsync -vz /home2/$USER/datasets/complete-en-ml/ $DATA/complete-en-ml/
+mv $DATA/sample_check/a.txt $DATA/complete-en-ml/test.ml-en.en
+
 function _export {
     ssh $USER@ada "mkdir -p ada:/share1/$USER/checkpoints/pib"
-    rsync -rvz $CHECKPOINTS/checkpoint_{best,last}.pt ada:/share1/$USER/checkpoints/pib/
+    rsync -rvz $CHECKPOINTS/checkpoint_best.pt ada:/share1/$USER/checkpoints/pib/
 }
 
-trap "_export" SIGHUP
+# trap "_export" SIGHUP
 copy
 export ILMULTI_CORPUS_ROOT=$DATA
 
@@ -119,9 +106,16 @@ function _test {
 
 }
 
-ARG=$1
-eval "$1"
-# _test
+function _backtranslate {
+	python3 generate.py config.yaml \
+          --task shared-multilingual-translation  \
+          --path $CHECKPOINTS/checkpoint_best.pt > $RESULTS/output.txt
+}
 
-wait
-_export
+# ARG=$1
+# eval "$1"
+# # _test
+
+# wait
+# _export
+_backtranslate
